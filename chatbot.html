@@ -1,0 +1,536 @@
+<script>
+    var chat_id_content = "";
+    var intent_collection = 
+    [
+            {intent:"hobby_interest",user_msg:["What are his hobbies", "What are his interests"],bot_msg:"Ankit latest hobby is to write blogs. He enjoys food while eating and cooking for himself and family and his oldest hobby is to write innovative solutions like this chatbot since he knows computers."},
+            {intent:"greeting", user_msg:["Hi","Hello","How are you?"],bot_msg:"Hi, I am Ankit's virtual assistant."},
+            {intent:"your_job", user_msg:["What can I ask you?","Anything you can do for me?","What is your job"],bot_msg:"You can ask me questions about ankit or select one of the flllowing options:<br/><br/><div class='link' onclick='bot_response_to_user_input(\"About Ankit\");'>About Ankit</div><div class='link' onclick='bot_response_to_user_input(\"His Qualification\");'>His Qualification</div><div class='link' onclick='bot_response_to_user_input(\"His Current Job\");'>His Current Job</div><div class='link' onclick='bot_response_to_user_input(\"His Hobbies and Interests\");'>His Hobbies and Interests</div><div class='link' onclick='bot_response_to_user_input(\"Send an Email\");'>Send an Email</div>" },
+            {intent:"about",user_msg:["About Ankit","Tell me something about Ankit","What's about Ankit"],bot_msg:"Ankit is a Software Professional delivering IT solutions in Banking and Finance sector for more than a decade. Helping client realize their solutions through latest industry practices including DevOps, Agile software development, Machine Learning, Artificial Intelligence, Deep Learning and IT process automation. Experience in delivering intelligent solutions, automation solutions, database driven solutions and data analytics solutions. Proficient in data analysis and visualization through excel, Python and Tableau and R."},
+            {intent:"qualification",user_msg:["What is highest qualification","What is highest degree","Tell me about his education"],bot_msg:"Ankit is Post Graduate Diploma in Data Science from Amity University, Careers of Tomorrow (2019-2020) and Bachelor of Technology (B.Tech.) in Information Technology from UPTU (2005-2009) "},
+            {intent:"current_job",user_msg:["In which company","Where works","What job"],bot_msg:"Ankit works as Senior Consultant for Capgemini Techonology Solutions Pvt. Ltd."},
+            {intent:"hobby",user_msg:["What are his hobbies", "What you do in free time", "How do you utilize your time","What are your interests"], bot_msg:"Ankit enjoys to cook for him and his family. Writing blogs is his latest hobby and creating innovative solutions like this chatbot is his hobby since he knows computers."},
+			{intent:"Send an Email", user_msg:["Can I contact?", "How to reach?", "Send an email", "Connect me"], bot_msg:"Message:<form id='mail' onsubmit='return false;'><input id='mail_msg' type='textarea'><div class='note'>Please specify your contact info in message</div><input id='mail_btn' type='submit'  name='Send Email' onclick='send_email();'/></form>"}
+    ];
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    async function send_email() {
+        var mail_msg = document.getElementById("mail_msg");
+        var mail_btn = document.getElementById("mail_btn");
+
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+                add_bot_message("Email Sent Successfully with message \""+mail_msg.value+"\"");
+                mail_msg.disabled=true;
+                mail_msg.removeAttribute('id');
+                mail_btn.disabled=true;
+                mail_btn.removeAttribute('id');
+            }
+        };
+            
+        xhttp.open("GET", '/about/?email_msg=' + mail_msg.value, true);
+        xhttp.send();
+        return false;
+    }
+    function classify_intent(msg){
+        var max_similarity=0;
+        for(var i=0;i<intent_collection.length;i++){
+            var intent = intent_collection[i];
+            similar_point = similarity(msg.toLowerCase(),intent.intent.toLowerCase());
+            if( similar_point > max_similarity){
+                max_similar_intent = intent;
+                max_similarity = similar_point;
+            }
+
+            for(var j=0;j<intent.user_msg.length;j++)
+            {
+                similar_point = similarity(msg.toLowerCase(),intent.user_msg[j].toLowerCase());
+                if( similar_point > max_similarity){
+                    max_similar_intent = intent;
+                    max_similarity = similar_point;
+                }
+            }
+        }
+        return max_similar_intent.bot_msg;
+    }
+    function similarity(s1, s2) {
+        var longer = s1;
+        var shorter = s2;
+        if (s1.length < s2.length) {
+            longer = s2;
+            shorter = s1;
+        }
+        var longerLength = longer.length;
+        if (longerLength == 0) {
+            return 1.0;
+        }
+        return (longerLength - editDistance(shorter, longer)) / parseFloat(longerLength);
+    }
+    function editDistance(s1, s2) {
+        s1 = s1.toLowerCase();
+        s2 = s2.toLowerCase();
+
+        var costs = new Array();
+        for (var i = 0; i <= s1.length; i++) {
+            var lastValue = i;
+            for (var j = 0; j <= s2.length; j++) {
+            if (i == 0)
+                costs[j] = j;
+            else {
+                if (j > 0) {
+                var newValue = costs[j - 1];
+                if (s1.charAt(i - 1) != s2.charAt(j - 1))
+                    newValue = Math.min(Math.min(newValue, lastValue),
+                    costs[j]) + 1;
+                costs[j - 1] = lastValue;
+                lastValue = newValue;
+                }
+            }
+            }
+            if (i > 0)
+            costs[s2.length] = lastValue;
+        }
+        return costs[s2.length];
+    }
+
+
+    function get_bot_response(msg){
+        var bot_msg = classify_intent(msg);
+        if(bot_msg != "no idea"){
+            return bot_msg;
+        }
+        return classify_intent("hi");
+    }
+    var saved_height_ex = "0px";
+    var saved_width_ex = "0px";
+    var saved_height = "0px";
+    var saved_send_button_height = "0px";
+    var saved_width = "0px";
+    function toggle_chat_window(){
+        var visible = document.getElementById("chat").style.display;
+        if(visible == "block"){
+            document.getElementById("chat").style.display="none";
+            document.getElementById("ChatBot").style.display="block";
+        }else{
+            document.getElementById("chat").style.display="block";
+            document.getElementById("ChatBot").style.display="none";
+        }
+    }
+    function maximize_chat_window(){
+        var root= document.querySelector(":root");
+        root.style.setProperty("--height",saved_height);
+        root.style.setProperty("--send-button-height",saved_send_button_height);
+        document.getElementById("minimize").style.display="block";
+        document.getElementById("maximize").style.display="none";
+        document.getElementById("userMsg").style.display="block";
+        document.getElementById("send").style.display="block";
+    }
+    function minimize_chat_window(){
+        var root= document.querySelector(":root");
+        saved_height = getComputedStyle(root).getPropertyValue("--height");
+        saved_send_button_height = getComputedStyle(root).getPropertyValue("--send-button-height");
+        root.style.setProperty("--height","0px");
+        root.style.setProperty("--send-button-height","0px");
+        document.getElementById("userMsg").style.display="none";
+        document.getElementById("send").style.display="none";
+        document.getElementById("minimize").style.display="none";
+        document.getElementById("maximize").style.display="block";
+    }
+    function expand_chat_window(){
+        var root= document.querySelector(":root");
+        saved_width_ex = getComputedStyle(root).getPropertyValue("--width");
+        root.style.setProperty("--width",(getComputedStyle(root).getPropertyValue("--expand-width")));
+        saved_height_ex = getComputedStyle(root).getPropertyValue("--height");
+        root.style.setProperty("--height",(getComputedStyle(root).getPropertyValue("--expand-height")));
+        document.getElementById("expand").style.display="none";
+        document.getElementById("contract").style.display="block";
+    }
+    function contract_chat_window(){
+        var root= document.querySelector(":root");
+        root.style.setProperty("--width",(getComputedStyle(root).getPropertyValue("--contract-width")));
+        root.style.setProperty("--height",(getComputedStyle(root).getPropertyValue("--contract-height")));
+        document.getElementById("expand").style.display="block";
+        document.getElementById("contract").style.display="none";
+    }
+    function add_listeners(){
+        var userMsg = document.getElementById("userMsg");
+        userMsg.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                bot_response_to_user_input(userMsg.value);
+            }
+        });
+        document.getElementById("send").addEventListener('click',function(event){bot_response_to_user_input(userMsg.value);});
+        document.getElementById("to_bot").addEventListener('submit',function(event){return false;});
+        document.getElementById("minimize").addEventListener("click", function(event) {minimize_chat_window()});
+        document.getElementById("maximize").addEventListener("click", function(event) {maximize_chat_window()});
+        document.getElementById("expand").addEventListener("click", function(event) {expand_chat_window()});
+        document.getElementById("contract").addEventListener("click", function(event) {contract_chat_window()});
+        document.getElementById("close").addEventListener("click", function(event) {toggle_chat_window()})
+        document.getElementById("ChatBot").addEventListener("click", function(event) {toggle_chat_window()});
+        document.getElementById("StartOver").addEventListener("click", function(event) {add_bot_response("your job")});
+    }
+    async function load_chatbot(){
+        var comp = document.getElementById("chat_component");
+        var chatbot = document.createElement("div");
+        chatbot.id="ChatBot";
+        chatbot.innerHTML='<img id="chat-gif" src="/wp-content/uploads/2022/05/chat-assistant.gif" width="80rem" height="80rem" />';
+        comp.appendChild(chatbot);
+        var chat = document.createElement("div");
+        chat.id="chat";
+        comp.appendChild(chat);
+        var window = document.createElement("div");
+        window.id="window";
+        chat.appendChild(window);
+        var title = document.createElement("div");
+        title.id="title";
+        title.innerText="Let's talk about Ankit";
+
+        var minimize = document.createElement("div");
+        minimize.id="minimize";
+        minimize.innerHTML="&#128469;";
+        var maximize = document.createElement("div");
+        maximize.id="maximize";
+        maximize.innerHTML="&#128470;"
+        var expand = document.createElement("div");
+        expand.id="expand";
+        expand.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" data-supported-dps="16x16" fill="currentColor" class="mercado-match" width="16" height="16" focusable="false"><path d="M8 6.59L6.59 8 3 4.41V7H1V1h6v2H4.41zM13 9v2.59L9.41 8 8 9.41 11.59 13H9v2h6V9z"></path></svg>';
+        var contract = document.createElement("div");
+        contract.id="contract";
+        contract.innerHTML="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' data-supported-dps='16x16' fill='currentColor' class='mercado-match' width='16' height='16' focusable='false'><path d='M5 1h2v6H1V5h2.59L0 1.41 1.41 0 5 3.59zm7.41 10H15V9H9v6h2v-2.59L14.59 16 16 14.59z'></path></svg>";
+        var close = document.createElement("div");
+        close.id="close";
+        close.innerHTML = "✖";
+
+        title.appendChild(minimize);
+        title.appendChild(maximize);
+        title.appendChild(expand);
+        title.appendChild(contract);
+        title.appendChild(close);
+
+        window.appendChild(title);
+
+        
+    
+        var to_bot=document.createElement("form");
+        to_bot.id="to_bot";
+        window.appendChild(to_bot);
+
+        userMsg = document.createElement("input");
+        userMsg.type="textarea";
+        userMsg.id="userMsg";
+        to_bot.appendChild(userMsg);
+
+        startOver = document.createElement("div");
+        startOver.id="StartOver";
+        startOver.innerText = "Start Over";
+        to_bot.appendChild(startOver);
+
+        send = document.createElement("input");
+        send.id="send";
+        send.value="Send";
+        send.type="button";
+        to_bot.appendChild(send);
+
+        add_bot_response("hi");
+        add_bot_response("your_job");
+        add_listeners();
+    }
+    function add_user_input(msg){
+        if(msg.trim().length!=0)
+        {
+            var chat=document.getElementById("chat");
+            var userSaid = document.createElement("div");
+            userSaid.appendChild(document.createTextNode(msg));
+            userSaid.classList.add("user");
+            chat.appendChild(userSaid);
+        }
+        return false;
+    }
+    function add_bot_message(msg){
+        if(msg.trim().length!=0)
+        {
+            var chat=document.getElementById("chat");
+            var botSaid = document.createElement("div");
+            botSaid.classList.add("bot");
+            botSaid.innerHTML=msg;
+            chat.appendChild(botSaid);
+            document.getElementById("userMsg").value="";
+            chat.scrollTop = chat.scrollHeight;
+        }
+        return false;    
+    }
+    function add_bot_response(msg){
+        if(msg.trim().length!=0)
+        {
+            var chat=document.getElementById("chat");
+            var botSaid = document.createElement("div");
+            botSaid.classList.add("bot");
+            botSaid.innerHTML=get_bot_response(msg);
+            chat.appendChild(botSaid);
+            document.getElementById("userMsg").value="";
+            chat.scrollTop = chat.scrollHeight;
+        }
+        return false;    
+    }
+    async function bot_response_to_user_input(msg){
+        add_user_input(msg);
+        add_bot_response(msg);
+    }
+    function chat_drag_drop_enable(){
+        var isMoving=false;
+        var x=0;
+        var y=0;
+        var title=document.getElementById("title");
+    
+        title.addEventListener('mousedown',e => {
+            var root= document.querySelector(":root");
+            window_x = getComputedStyle(root).getPropertyValue("--window-position-from-right");
+            window_y = getComputedStyle(root).getPropertyValue("--window-position-from-bottom");
+            x = e.offsetX;
+            y = e.offsetY;
+            isMoving=true;
+        });
+        
+        title.addEventListener('mousemove',e => {
+            if(isMoving === true){
+                var root= document.querySelector(":root");
+                window_x = getComputedStyle(root).getPropertyValue("--window-position-from-right");
+                window_y = getComputedStyle(root).getPropertyValue("--window-position-from-bottom");
+                root.style.setProperty("--window-position-from-right",(e.offsetX-window_x));
+                root.style.setProperty("--window-position-from-bottom",(e.offsetY-window_y));
+            }
+        });
+        title.addEventListener('mouseup',e=>{
+            var root= document.querySelector(":root");
+                window_x = getComputedStyle(root).getPropertyValue("--window-position-from-right");
+                window_y = getComputedStyle(root).getPropertyValue("--window-position-from-bottom");
+                root.style.setProperty("--window-position-from-right",(e.offsetX-window_x));
+                root.style.setProperty("--window-position-from-bottom",(e.offsetY-window_y));
+            isMoving = false;
+        });
+    }
+</script>
+<style>
+    :root{
+        --color:#00005e;
+        --chat-text-color:#000000;
+        --link-color:#121212;
+        --link-bg-color:#f2f2f2;
+        --bot-bg-color:#f2f2f2;
+        --user-bg-color:#e6e7f2;
+        --chat-bg-color:#ffffff;
+    
+        --contract-height:55vh;
+        --contract-width:20rem;
+        --expand-width:25rem;
+        --expand-height:75vh;
+        
+        --height:var( --contract-height );
+        --width:var( --contract-width );
+    
+        --window-position-from-right:4rem;
+        --window-position-from-bottom:0rem;
+
+        --chat-coverage:90%;
+    
+        
+        --send-button-width:5rem;
+        --send-button-height:2rem;
+    }
+
+    .bot .node {
+        font-size: 0.5em;
+        color:grey;
+    }
+
+    .bot #mail_msg {
+        height: 3em;
+        width: 90%;
+    }
+
+    #chat .link{
+        background-color:var(--link-bg-color);
+        color:var(--color);
+        border-radius:0.25rem;
+        text-align:left;
+        padding-left: 1em;
+        padding-right: 1em;
+        margin-left: 0.25em;
+        margin-right: 0.25em;
+        float:left;
+        border: 1px solid var(--link-color);
+    }
+    
+    #chat a{
+        text-decoration:none;
+        color:var(--color);
+    }
+    
+    #chat a::after {
+        content:">";
+        float:right;
+        padding-right:0.5rem;
+        text-decoration:bold;
+    }
+    
+    #chat .bot{
+        position:relative;
+        background-color:var(--bot-bg-color);
+        margin:0.20rem;
+        padding:1rem;
+        width:var(--chat-coverage);
+        float:left;
+        border-radius:0rem 1.5rem 1.5rem 1.5rem;
+    }
+    
+    .bot::before{
+        content:url(/wp-content/uploads/2022/05/chatbot.png);
+        padding-right:1rem;
+        float:left;
+    }
+    
+    .user::before{
+        content:url(/wp-content/uploads/2022/05/user.png);
+        padding-left:1rem;
+        float:right;
+    }
+    
+    #userMsg{
+        position:fixed;
+        bottom:var(--window-position-from-bottom);
+        right:calc( var(--window-position-from-right) + var(--send-button-width) );
+        width: calc( var(--width) - var(--send-button-width) );
+        height: var(--send-button-height);
+        border-radius:.25rem;
+        z-index:999;
+        font-size:1.5rem;
+    }
+    
+    #send{
+        position:fixed;
+        bottom:var(--window-position-from-bottom);
+        right:var(--window-position-from-right);
+        width:var(--send-button-width);
+        height:var(--send-button-height);
+        padding:.25rem;
+        z-index:999;
+    }
+    
+    #chat{
+        display:none;
+        color:var(--chat-text-color);
+        border:1px solid var(--color);
+        position:fixed;
+        width:var(--width);
+        height:var(--height);
+        right:var(--window-position-from-right);
+        bottom:calc( var(--send-button-height) + var(--window-position-from-bottom) );
+        background-color:var(--chat-bg-color);
+        overflow-x:hidden;
+        overflow-y:auto;
+        font: Arial, Helvetica, sans-serif;
+        z-index:999;
+    }
+    
+    #title{
+        background-color:var(--color);
+        position:fixed;
+        bottom:calc( var(--height) + var(--send-button-height) + var(--window-position-from-bottom) );
+        width: var(--width) ;
+        padding:0.50rem;
+        border-radius:1rem 1rem 0rem 0rem;
+        text-decoration:bold;
+        color:white;
+        z-index:999;
+        user-select:none;
+    }
+    
+    #close{
+        position:fixed;
+        bottom:calc( var(--window-position-from-bottom) + var(--height) + var(--send-button-height) + 0.5rem );
+        right:calc( var(--window-position-from-right) + 1rem);
+    }
+    #maximize{
+        position:fixed;
+        bottom:calc( var(--window-position-from-bottom) + var(--height) + var(--send-button-height) + 0.5rem );
+        right:calc( var(--window-position-from-right) + 2.5rem );
+        display:none;
+    }
+    #minimize{
+        position:fixed;
+        bottom:calc( var(--window-position-from-bottom) + var(--height) + var(--send-button-height) + 0.5rem );
+        right:calc( var(--window-position-from-right) + 2.5rem );
+        font-weight:bold;
+        display:block;
+    }
+    #expand{
+        position:fixed;
+        bottom:calc( var(--window-position-from-bottom) + var(--height) + var(--send-button-height) + 0.5rem );
+        right:calc( var(--window-position-from-right) + 4rem );
+        font-weight:bold;
+        display:block;
+    }
+    #contract{
+        position:fixed;
+        bottom:calc( var(--window-position-from-bottom) + var(--height) + var(--send-button-height) + 0.5rem );
+        right:calc( var(--window-position-from-right) + 4rem );
+        font-weight:bold;
+        display:none;
+    }
+    
+    #StartOver {
+        position:fixed;
+        bottom:var(--send-button-height);
+        right:var(--window-position-from-right);
+        z-index: 999;
+        float:right;
+        background-color: grey;
+        border-radius: .25em;
+        padding:.35em
+    }
+
+    #ChatBot{
+        position:fixed;
+        bottom: var(--window-position-from-bottom) ;
+        right: var(--window-position-from-right) ;
+        background-color:white;
+        animation: shake 5sec;
+        z-index:999;
+    }
+    
+    #chat-gif {
+        animation: shake 0.5s;
+        animation-iteration-count: infinite;
+    }
+
+    @keyframes shake {
+        0% { transform: translate(1px, 1px) rotate(0deg); }
+        10% { transform: translate(-1px, -2px) rotate(-1deg); }
+        20% { transform: translate(-3px, 0px) rotate(1deg); }
+        30% { transform: translate(3px, 2px) rotate(0deg); }
+        40% { transform: translate(1px, -1px) rotate(1deg); }
+        50% { transform: translate(-1px, 2px) rotate(-1deg); }
+        60% { transform: translate(-3px, 1px) rotate(0deg); }
+        70% { transform: translate(3px, 1px) rotate(-1deg); }
+        80% { transform: translate(-1px, -1px) rotate(1deg); }
+        90% { transform: translate(1px, 2px) rotate(0deg); }
+        100% { transform: translate(1px, -2px) rotate(-1deg); }
+    }
+
+    #chat .user{
+        position:relative;
+        background-color:var(--user-bg-color);
+        margin:.20rem;
+        padding:1rem;
+        width:var(--chat-coverage);
+        float:right;
+        text-align:justify;
+        border-radius:1.5rem 0rem 1.5rem 1.5rem;
+    }
+    </style>        
+  
+
+  <div id="chat_component"></div>
+  <script>load_chatbot();</script>
